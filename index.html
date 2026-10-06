@@ -3,926 +3,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Krüger | Calentadores de Agua - Distribuidor Autorizado</title>
-    <link rel="icon" type="image/ico" href="./kru.ico">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800;900&display=swap" rel="stylesheet">
-    
-    <!-- SDK DE MERCADO PAGO -->
-    <script src="https://sdk.mercadopago.com/js/v2"></script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Outfit', 'sans-serif'],
-                    },
-                    colors: {
-                        'metallic-blue': '#002855',
-                        'metallic-red': '#D31145',
-                        'metallic-silver': '#E8ECEF'
-                    }
-                }
-            }
-        }
-    </script>
+    <title>Calculadora de Rentabilidad RESICO + Mercado Pago + Envío</title>
     <style>
-        body { font-family: 'Outfit', sans-serif; background-color: #F8F9FA; }
-        .glass-nav {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        :root {
+            --bg-color: #f4f7fb;
+            --card-bg: #ffffff;
+            --primary: #1a73e8;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --border: #e0e0e0;
+            --success: #0d652d;
+            --success-bg: #e6f4ea;
+            --danger: #c5221f;
+            --danger-bg: #fce8e6;
+            --mp-blue: #00b1ea;
+            --shipping: #f29900;
         }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.7);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 8px 32px 0 rgba(0, 40, 85, 0.05);
-        }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .container { grid-template-columns: 1fr; } }
+        .card { background: var(--card-bg); border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .header { grid-column: 1 / -1; text-align: center; margin-bottom: 10px; }
+        h1 { color: var(--primary); margin-top: 0; font-size: 24px; }
+        h2 { font-size: 18px; border-bottom: 2px solid var(--bg-color); padding-bottom: 10px; margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; margin-bottom: 5px; font-size: 14px; }
+        input[type="number"], select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 16px; box-sizing: border-box; }
+        .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+        .row:last-child { border-bottom: none; }
+        .row.total { font-weight: bold; font-size: 16px; background: var(--bg-color); padding: 10px; border-radius: 6px; margin-top: 10px; }
+        .alert { padding: 15px; border-radius: 8px; margin-top: 20px; font-weight: bold; text-align: center; font-size: 18px; }
+        .alert-success { background-color: var(--success-bg); color: var(--success); }
+        .alert-danger { background-color: var(--danger-bg); color: var(--danger); }
+        .toggle-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        .toggle-btn { flex: 1; padding: 10px; text-align: center; border: 1px solid var(--primary); background: white; color: var(--primary); border-radius: 6px; cursor: pointer; font-weight: bold; transition: all 0.2s;}
+        .toggle-btn.active { background: var(--primary); color: white; }
     </style>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, doc, updateDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyCSdcopQjbZoYwcgwjB8uhosN-yY11kMdQ",
-            authDomain: "tienda-kruger.firebaseapp.com",
-            projectId: "tienda-kruger",
-            storageBucket: "tienda-kruger.firebasestorage.app",
-            messagingSenderId: "675310203131",
-            appId: "1:675310203131:web:aaec21767633143169805e"
-        };
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        const mp = new MercadoPago('APP_USR-80117618-df58-4d18-8140-3b3e5f4c1f5d', { locale: 'es-MX' });
-
-        let products = [];
-        let cart = JSON.parse(localStorage.getItem('krugerCart')) || [];
-        let currentActiveProduct = null;
-        let activeCategory = 'Todos'; 
-
-        const productsGrid = document.getElementById('products-grid');
-        const cartCount = document.getElementById('cart-count');
-        const cartModal = document.getElementById('cart-modal');
-        const cartItemsList = document.getElementById('cart-items');
-        const cartTotal = document.getElementById('cart-total');
-        const checkoutModal = document.getElementById('checkout-modal');
-        const finalTotal = document.getElementById('final-total');
-        const detailModal = document.getElementById('product-detail-modal');
-
-        onSnapshot(collection(db, "products"), (snapshot) => {
-            products = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderProducts();
-        });
-
-        window.filterCat = (cat) => {
-            activeCategory = cat;
-            document.querySelectorAll('.cat-btn').forEach(btn => {
-                if(btn.innerText === cat) {
-                    btn.className = "cat-btn active bg-metallic-blue text-white px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-sm whitespace-nowrap shadow-md transition-all";
-                } else {
-                    btn.className = "cat-btn bg-white text-gray-600 hover:text-metallic-blue px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-sm whitespace-nowrap border border-gray-200 hover:border-metallic-blue transition-all";
-                }
-            });
-            renderProducts();
-        };
-
-        function renderProducts() {
-            if (products.length === 0) {
-                productsGrid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 font-medium">Sincronizando inventario con nuestros almacenes...</div>`;
-                return;
-            }
-
-            const filteredProducts = activeCategory === 'Todos' ? products : products.filter(p => {
-                const pType = (p.type || p.category || '').toLowerCase();
-                const searchCat = activeCategory.toLowerCase();
-                return pType.includes(searchCat) || searchCat.includes(pType);
-            });
-
-            if (filteredProducts.length === 0) {
-                productsGrid.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400 font-medium">No hay productos en esta categoría por el momento.</div>`;
-                return;
-            }
-
-            productsGrid.innerHTML = filteredProducts.map(product => {
-                const pTypeLower = (product.type || '').toLowerCase();
-                const needsGas = pTypeLower.includes('silver') || pTypeLower.includes('platinum') || pTypeLower.includes('instantáneo') || pTypeLower.includes('instantaneo') || pTypeLower.includes('parrilla');
-                
-                let gasSelectHtml = '';
-                if (needsGas) {
-                    gasSelectHtml = `
-                        <div class="mb-2 sm:mb-3">
-                            <select id="gas-${product.id}" class="w-full text-[10px] sm:text-xs font-semibold border border-gray-200 rounded-lg sm:rounded-xl p-1.5 sm:p-2 outline-none focus:border-metallic-blue focus:ring-1 focus:ring-metallic-blue bg-gray-50 text-gray-700">
-                                <option value="Gas LP">🔥 Gas LP</option>
-                                <option value="Gas Natural">🔥 Gas Natural</option>
-                            </select>
-                        </div>
-                    `;
-                }
-
-                let priceHtml = '';
-                if (product.originalPrice && product.originalPrice > product.price) {
-                    priceHtml = `
-                        <div class="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-2 mb-2 sm:mb-4">
-                            <span class="text-[10px] sm:text-sm text-gray-400 line-through font-semibold leading-none">$${product.originalPrice.toLocaleString('es-MX')}</span>
-                            <span class="text-base sm:text-2xl font-black text-metallic-red leading-none">$${product.price.toLocaleString('es-MX')} <span class="text-[9px] sm:text-xs font-medium text-gray-500">MXN</span></span>
-                        </div>
-                    `;
-                } else {
-                    priceHtml = `<p class="text-base sm:text-2xl font-black text-gray-900 mb-2 sm:mb-4">$${product.price.toLocaleString('es-MX')} <span class="text-[9px] sm:text-xs font-medium text-gray-500">MXN</span></p>`;
-                }
-
-                return `
-                <div class="glass-card rounded-2xl md:rounded-3xl overflow-hidden group hover:shadow-[0_20px_40px_rgba(0,40,85,0.1)] transition-all duration-300 relative flex flex-col h-full">
-                    <div onclick="openProductDetail('${product.id}')" class="relative h-32 sm:h-56 overflow-hidden bg-gradient-to-b from-gray-50 to-white flex items-center justify-center p-4 cursor-pointer">
-                        <img src="${product.image}" alt="${product.name}" class="object-contain w-full h-full group-hover:scale-110 transition-transform duration-500 drop-shadow-xl">
-                        
-                        <span class="absolute top-2 left-2 bg-metallic-red text-white text-[8px] sm:text-xs font-bold px-2 py-1 rounded-full uppercase tracking-widest shadow-md truncate max-w-[70%] z-10">${product.type || ''}</span>
-                        
-                        <div class="absolute bottom-2 right-2 bg-green-500 text-white text-[8px] sm:text-[10px] font-black px-2 py-1 rounded-xl rounded-br-none uppercase tracking-wider shadow-lg flex items-center gap-1 z-10">
-                            <i class="fas fa-truck-fast"></i> <span class="hidden sm:inline">Envío Gratis</span>
-                        </div>
-                    </div>
-                    
-                    <div class="p-3 sm:p-6 flex flex-col flex-1">
-                        <h3 class="text-xs sm:text-lg font-bold text-metallic-blue mb-1 sm:mb-2 line-clamp-2">${product.name}</h3>
-                        
-                        ${priceHtml}
-                        
-                        <div class="mt-auto">
-                            ${gasSelectHtml}
-                            
-                            ${(product.installPrice && product.installPrice > 0) ? `
-                                <div class="mb-2 sm:mb-4 bg-white/50 p-1.5 sm:p-3 rounded-lg sm:rounded-xl border border-gray-100">
-                                    <label class="flex items-center sm:items-start gap-1.5 sm:gap-3 cursor-pointer">
-                                        <input type="checkbox" id="install-${product.id}" onchange="if(this.checked) { if(!confirm('⚠️ ATENCIÓN: El servicio de instalación EXCLUSIVAMENTE tiene cobertura en la ciudad de León, Guanajuato.\\n\\n¿Confirmas que el domicilio de instalación se encuentra en León, Gto?')) this.checked = false; }" class="w-3.5 h-3.5 sm:w-5 sm:h-5 text-metallic-blue rounded border-gray-300">
-                                        <span class="text-[9px] sm:text-sm text-gray-600 font-medium leading-tight">Inst. León <strong class="text-metallic-red">+$${product.installPrice.toLocaleString('es-MX')}</strong></span>
-                                    </label>
-                                </div>
-                            ` : ''}
-                            <button onclick="addToCart('${product.id}')" class="w-full bg-metallic-blue hover:bg-blue-900 text-white text-[10px] sm:text-sm font-semibold py-2 sm:py-3 rounded-lg sm:rounded-xl transition-all duration-300 flex justify-center items-center gap-1.5 shadow-md transform hover:-translate-y-0.5">
-                                <i class="fas fa-cart-plus"></i> <span class="hidden sm:inline">Agregar al carrito</span><span class="sm:hidden">Agregar</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `}).join('');
-        }
-
-        window.openProductDetail = (id) => {
-            currentActiveProduct = products.find(p => p.id === id);
-            const p = currentActiveProduct;
-            
-            document.getElementById('detail-name').innerText = p.name;
-            document.getElementById('detail-category-badge').innerText = p.type || '';
-
-            const detailPrice = document.getElementById('detail-price');
-            if (p.originalPrice && p.originalPrice > p.price) {
-                detailPrice.innerHTML = `<span class="text-xl md:text-2xl text-gray-400 line-through mr-3 font-semibold">$${p.originalPrice.toLocaleString('es-MX')}</span><span class="text-metallic-red">$${p.price.toLocaleString('es-MX')} MXN</span>`;
-            } else {
-                detailPrice.innerHTML = `$${p.price.toLocaleString('es-MX')} MXN`;
-            }
-
-            document.getElementById('detail-desc').innerText = p.description || "Calentador Krüger con ingeniería alemana de máxima eficiencia y ahorro de gas comprobado. Construcción reforzada para larga durabilidad y tecnología de temperatura constante.";
-            document.getElementById('detail-main-img').src = p.image;
-            
-            // Renderizar selector de gas dinámico en el modal
-            const pTypeLower = (p.type || '').toLowerCase();
-            const needsGas = pTypeLower.includes('silver') || pTypeLower.includes('platinum') || pTypeLower.includes('instantáneo') || pTypeLower.includes('instantaneo') || pTypeLower.includes('parrilla');
-            const detailGasContainer = document.getElementById('detail-gas-container');
-            if(needsGas) {
-                detailGasContainer.innerHTML = `
-                    <div class="mb-4">
-                        <label class="block text-sm font-bold text-gray-700 mb-2">Selecciona el tipo de gas:</label>
-                        <select id="detail-gas-select" class="w-full font-bold border border-gray-200 rounded-xl p-3 outline-none focus:border-metallic-blue focus:ring-1 focus:ring-metallic-blue bg-gray-50 text-gray-700">
-                            <option value="Gas LP">🔥 Gas LP</option>
-                            <option value="Gas Natural">🔥 Gas Natural</option>
-                        </select>
-                    </div>
-                `;
-            } else { detailGasContainer.innerHTML = ''; }
-
-            const installContainer = document.getElementById('detail-install-container');
-            if(p.installPrice > 0) {
-                installContainer.innerHTML = `
-                    <div class="mb-6 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                        <label class="flex items-start gap-3 cursor-pointer">
-                            <input type="checkbox" id="detail-install-check" onchange="if(this.checked) { if(!confirm('⚠️ ATENCIÓN: El servicio de instalación EXCLUSIVAMENTE tiene cobertura en la ciudad de León, Guanajuato.\\n\\n¿Confirmas que el domicilio de instalación se encuentra en León, Gto?')) this.checked = false; }" class="mt-1 w-5 h-5 text-metallic-blue rounded border-gray-300">
-                            <span class="text-sm text-gray-700 font-medium">
-                                Agregar Instalación Certificada (León, Gto) <br>
-                                <strong class="text-metallic-red text-base">+$${p.installPrice.toLocaleString('es-MX')} MXN</strong>
-                            </span>
-                        </label>
-                    </div>
-                `;
-            } else { installContainer.innerHTML = ''; }
-            
-            detailModal.classList.remove('hidden');
-        };
-
-        window.closeProductDetail = () => { detailModal.classList.add('hidden'); currentActiveProduct = null; };
-
-        window.addDetailToCart = () => {
-            const p = currentActiveProduct;
-            const installCheck = document.getElementById('detail-install-check');
-            const wantsInstall = installCheck ? installCheck.checked : false;
-            const gasSelect = document.getElementById('detail-gas-select');
-            const gasType = gasSelect ? gasSelect.value : null;
-            
-            // Creamos un ID único que incluya si lleva instalación y el tipo de gas
-            const cartItemId = p.id + (wantsInstall ? '-with-install' : '') + (gasType ? '-' + gasType.replace(/\s+/g, '') : '');
-            const existing = cart.find(item => item.cartItemId === cartItemId);
-            
-            if (existing) existing.quantity++;
-            else cart.push({ ...p, cartItemId, quantity: 1, wantsInstall, gasType });
-            
-            updateCart();
-            closeProductDetail();
-            openCart();
-        };
-
-        window.addToCart = (id) => {
-            const product = products.find(p => p.id === id);
-            const installCheck = document.getElementById(`install-${id}`);
-            const wantsInstall = installCheck ? installCheck.checked : false;
-            const gasSelect = document.getElementById(`gas-${id}`);
-            const gasType = gasSelect ? gasSelect.value : null;
-
-            const cartItemId = id + (wantsInstall ? '-with-install' : '') + (gasType ? '-' + gasType.replace(/\s+/g, '') : '');
-            const existingItem = cart.find(item => item.cartItemId === cartItemId);
-            
-            if (existingItem) existingItem.quantity++;
-            else cart.push({ ...product, cartItemId, quantity: 1, wantsInstall, gasType });
-            
-            if(installCheck) installCheck.checked = false;
-            updateCart();
-            openCart();
-        };
-
-        window.removeFromCart = (cartItemId) => {
-            cart = cart.filter(item => item.cartItemId !== cartItemId);
-            updateCart();
-        };
-
-        function updateCart() {
-            localStorage.setItem('krugerCart', JSON.stringify(cart));
-            
-            cartCount.innerText = cart.reduce((sum, item) => sum + item.quantity, 0);
-            const total = cart.reduce((sum, item) => {
-                let itemTotal = item.price;
-                if(item.wantsInstall && item.installPrice) itemTotal += item.installPrice;
-                return sum + (itemTotal * item.quantity);
-            }, 0);
-
-            cartTotal.innerText = `$${total.toLocaleString('es-MX')}`;
-            if(finalTotal) finalTotal.innerText = `$${total.toLocaleString('es-MX')} MXN`;
-
-            if (cart.length === 0) {
-                cartItemsList.innerHTML = `<p class="text-gray-500 text-center py-10">Tu carrito está vacío</p>`;
-            } else {
-                cartItemsList.innerHTML = cart.map(item => `
-                    <div class="flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm mb-4 border border-gray-50 relative">
-                        <img src="${item.image}" class="w-16 h-16 object-contain rounded-xl bg-gray-50 p-2">
-                        <div class="flex-1 pr-6">
-                            <h4 class="font-bold text-gray-800 text-sm mb-1">${item.name}</h4>
-                            <p class="text-metallic-red font-bold text-lg">$${item.price.toLocaleString('es-MX')}</p>
-                            ${item.gasType ? `<span class="inline-block bg-orange-50 text-orange-600 border border-orange-100 text-[10px] font-bold px-1.5 py-0.5 rounded mb-1"><i class="fas fa-fire mr-1"></i>${item.gasType}</span><br>` : ''}
-                            ${item.wantsInstall ? `<p class="text-xs text-metallic-blue font-bold">+ Inst. $${item.installPrice.toLocaleString('es-MX')}</p>` : ''}
-                            <span class="text-xs text-gray-500">Cant: ${item.quantity}</span>
-                        </div>
-                        <button onclick="removeFromCart('${item.cartItemId}')" class="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </div>
-                `).join('');
-            }
-        }
-
-        window.openCart = () => cartModal.classList.remove('translate-x-full');
-        window.closeCart = () => cartModal.classList.add('translate-x-full');
-        
-        window.openCheckout = () => {
-            if(cart.length === 0) return alert("Tu carrito está vacío");
-            
-            const needsInstall = cart.some(item => item.wantsInstall);
-            if(needsInstall) {
-                document.getElementById('installation-fields').classList.remove('hidden');
-                document.getElementById('c-schedule').setAttribute('required', 'true');
-            } else {
-                document.getElementById('installation-fields').classList.add('hidden');
-                document.getElementById('c-schedule').removeAttribute('required');
-            }
-
-            const checkoutItemsList = document.getElementById('checkout-items-list');
-            checkoutItemsList.innerHTML = cart.map(item => `
-                <div class="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-gray-100 shadow-sm">
-                    <img src="${item.image}" class="w-12 h-12 object-contain bg-gray-50 rounded-lg p-1">
-                    <div class="flex-1 min-w-0">
-                        <h4 class="text-xs font-bold text-gray-800 leading-tight truncate">${item.name}</h4>
-                        <div class="text-[10px] text-gray-500 mt-0.5">
-                            Cant: ${item.quantity} 
-                            ${item.gasType ? `<span class="text-orange-500 font-bold ml-1">(${item.gasType})</span>` : ''}
-                            ${item.wantsInstall ? '<span class="text-metallic-red font-bold ml-1">(+Instalación)</span>' : ''}
-                        </div>
-                    </div>
-                    <div class="text-sm font-black text-metallic-blue whitespace-nowrap">
-                        $${((item.price + (item.wantsInstall ? item.installPrice : 0)) * item.quantity).toLocaleString('es-MX')}
-                    </div>
-                </div>
-            `).join('');
-
-            const total = cart.reduce((sum, item) => sum + ((item.price + (item.wantsInstall ? item.installPrice : 0)) * item.quantity), 0);
-            const subtotal = total / 1.16;
-            const iva = total - subtotal;
-
-            document.getElementById('checkout-subtotal').innerText = '$' + subtotal.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('checkout-iva').innerText = '$' + iva.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            document.getElementById('final-total').innerText = '$' + total.toLocaleString('es-MX') + ' MXN';
-
-            closeCart();
-            checkoutModal.classList.remove('hidden');
-        };
-        
-        window.closeCheckout = () => checkoutModal.classList.add('hidden');
-
-        document.getElementById('c-same-address').addEventListener('change', (e) => {
-            const el = document.getElementById('c-install-address-container'); 
-            const input = document.getElementById('c-install-address');
-            if(e.target.checked) {
-                el.classList.add('hidden');
-                input.removeAttribute('required');
-            } else {
-                el.classList.remove('hidden');
-                input.setAttribute('required', 'true');
-            }
-        });
-
-        function setupAutocomplete(inputId, listId) {
-            const input = document.getElementById(inputId);
-            const list = document.getElementById(listId);
-            let timeout = null;
-            input.addEventListener('input', function() {
-                clearTimeout(timeout);
-                const query = this.value;
-                if (query.length < 5) { list.classList.add('hidden'); return; }
-                timeout = setTimeout(() => {
-                    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=mx&limit=5`)
-                        .then(res => res.json())
-                        .then(data => {
-                            list.innerHTML = '';
-                            if (data.length > 0) {
-                                data.forEach(item => {
-                                    const li = document.createElement('li');
-                                    li.className = 'p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100 text-sm text-gray-700 flex items-start gap-2';
-                                    li.innerHTML = `<i class="fas fa-map-marker-alt text-metallic-red mt-1"></i> <span>${item.display_name}</span>`;
-                                    li.onclick = () => { input.value = item.display_name; list.classList.add('hidden'); };
-                                    list.appendChild(li);
-                                });
-                                list.classList.remove('hidden');
-                            } else { list.classList.add('hidden'); }
-                        });
-                }, 500); 
-            });
-            document.addEventListener('click', function(e) {
-                if (e.target !== input && e.target !== list) list.classList.add('hidden');
-            });
-        }
-
-        document.getElementById('checkout-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btn-process-order');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Cargando terminal segura...';
-            btn.disabled = true;
-
-            document.getElementById('wallet_container').innerHTML = '';
-
-            const needsInstall = cart.some(i => i.wantsInstall);
-            const shippingAddress = document.getElementById('c-address').value;
-            const finalInstallAddress = needsInstall ? (document.getElementById('c-same-address').checked ? shippingAddress : document.getElementById('c-install-address').value) : "";
-            
-            const addrLower = shippingAddress.toLowerCase();
-            if (!addrLower.includes('mexico') && !addrLower.includes('méxico')) {
-                alert("🛑 COBERTURA INVÁLIDA: Por el momento, nuestros envíos están limitados EXCLUSIVAMENTE a la República Mexicana.");
-                btn.innerHTML = '<i class="fas fa-lock mr-2"></i> Proceder al Pago Seguro';
-                btn.disabled = false;
-                return;
-            }
-
-            if (needsInstall) {
-                const instLower = finalInstallAddress.toLowerCase();
-                const isLeonGto = (instLower.includes('leon') || instLower.includes('león')) && 
-                                  (instLower.includes('gto') || instLower.includes('guanajuato'));
-                
-                if (!isLeonGto) {
-                    alert("🛑 COBERTURA DE INSTALACIÓN INVÁLIDA: El sistema detecta que la dirección de instalación no pertenece a León, Guanajuato.\n\nEl servicio de instalación es un servicio local. Por favor, corrige la dirección o regresa al carrito para quitar la instalación de tus productos.");
-                    btn.innerHTML = '<i class="fas fa-lock mr-2"></i> Proceder al Pago Seguro';
-                    btn.disabled = false;
-                    return;
-                }
-            }
-
-            const totalAmount = cart.reduce((s, i) => s + ((i.price + (i.wantsInstall?i.installPrice:0)) * i.quantity), 0);
-
-            const orderData = {
-                customerName: document.getElementById('c-name').value,
-                customerPhone: document.getElementById('c-phone').value,
-                customerEmail: document.getElementById('c-email').value,
-                shippingAddress: shippingAddress,
-                needsInstall: needsInstall,
-                installAddress: finalInstallAddress,
-                installSchedule: needsInstall ? document.getElementById('c-schedule').value : "",
-                // MANDAMOS EL TIPO DE GAS A LA BASE DE DATOS
-                items: cart.map(i => ({ name: i.name, price: i.price, quantity: i.quantity, wantsInstall: i.wantsInstall||false, installPrice: i.installPrice||0, gasType: i.gasType||"" })),
-                total: totalAmount,
-                createdAt: new Date()
-            };
-
-            try {
-                const responsePref = await fetch("https://servidor-kruger.onrender.com/create_preference", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ items: orderData.items })
-                });
-
-                const preference = await responsePref.json();
-                btn.classList.add('hidden'); 
-
-                const cleanAmount = Number(totalAmount);
-                const bricksBuilder = mp.bricks();
-                
-                bricksBuilder.create("payment", "wallet_container", {
-                    initialization: { amount: cleanAmount, preferenceId: preference.id },
-                    customization: {
-                        paymentMethods: { 
-                            creditCard: "all", 
-                            debitCard: "all", 
-                            mercadoPago: "all",
-                            maxInstallments: 1
-                        },
-                    },
-                    callbacks: {
-                        onReady: () => { console.log("Formulario de tarjeta cargado."); },
-                        onSubmit: ({ selectedPaymentMethod, formData }) => {
-                            formData.ordenKruger = orderData;
-                            return new Promise((resolve, reject) => {
-                                fetch("https://servidor-kruger.onrender.com/process_payment", {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify(formData),
-                                })
-                                .then((response) => response.json())
-                                .then(async (response) => {
-                                    resolve(); 
-
-                                    if (response.error) {
-                                        alert("No se pudo procesar: " + response.error);
-                                        return;
-                                    }
-
-                                    if (response.status === "approved") {
-                                        orderData.status = "Pagado";
-                                        orderData.mp_payment_id = response.id;
-                                        await addDoc(collection(db, "orders"), orderData);
-
-                                        localStorage.setItem("ordenKruger", JSON.stringify({
-                                            email: orderData.customerEmail,
-                                            total: cleanAmount,
-                                            items: cart
-                                        }));
-                                        
-                                        localStorage.removeItem('krugerCart');
-                                        cart = []; 
-                                        
-                                        // Seguridad: replace evita que la página actual se guarde en la flecha "atrás"
-                                        window.location.replace("success.html"); 
-                                    } else if (response.status === "in_process") {
-                                        alert("Tu pago está siendo revisado por el banco.");
-                                        window.location.replace("success.html");
-                                    } else if (response.status === "rejected") {
-                                        localStorage.setItem("krugerError", response.status_detail);
-                                        window.location.replace("error.html"); 
-                                    }
-                                })
-                                .catch((error) => {
-                                    reject(); 
-                                    alert("Error de red al intentar procesar el pago.");
-                                });
-                            });
-                        },
-                        onError: (error) => { console.error("Error en Brick:", error); },
-                    },
-                });
-
-            } catch(error) { 
-                alert("Hubo un problema de conexión: " + error.message); 
-                btn.innerHTML = '<i class="fas fa-lock mr-2"></i> Proceder al Pago Seguro'; 
-                btn.disabled = false;
-                btn.classList.remove('hidden');
-            } 
-        });
-
-        // Eventos generales de la interfaz
-        document.addEventListener("DOMContentLoaded", () => {
-            updateCart(); 
-            setupAutocomplete('c-address', 'address-suggestions');
-            setupAutocomplete('c-install-address', 'install-address-suggestions');
-        });
-
-        // NUEVO: Prevención de caché de retroceso para proteger datos de tarjetas
-        // Si el usuario da a la "flecha de regresar" después del pago, la página se recarga forzosamente limpiando el formulario.
-        window.addEventListener("pageshow", function (event) {
-            if (event.persisted) {
-                window.location.reload();
-            }
-        });
-    </script>
 </head>
-<body class="bg-[#F8F9FA] text-gray-800 antialiased overflow-x-hidden">
+<body>
 
-    <nav class="fixed w-full z-40 top-0 glass-nav transition-all duration-300">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-20 items-center">
-                <div class="flex flex-col">
-                    <div class="flex items-center">
-                        <img src="./kruger.png" alt="Krüger" class="h-8 md:h-10 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/240x60/transparent/002855?text=Krüger';">
-                    </div>
-                    <span class="text-[10px] uppercase tracking-widest text-gray-500 font-bold mt-1">Distribuidor Autorizado</span>
-                </div>
-                
-                <div class="hidden md:flex space-x-8">
-                    <a href="#calidad" class="text-sm font-bold text-gray-600 hover:text-metallic-blue transition-colors">Ingeniería Alemana</a>
-                    <a href="#tecnologia" class="text-sm font-bold text-gray-600 hover:text-metallic-blue transition-colors">Línea Silver</a>
-                    <a href="#catalogo" class="text-sm font-bold text-gray-600 hover:text-metallic-blue transition-colors">Catálogo</a>
-                </div>
+<div class="container">
+    <div class="header">
+        <h1>Calculadora RESICO + Mercado Pago</h1>
+        <p>Ajusta los valores y la calculadora se actualizará automáticamente.</p>
+    </div>
 
-                <div class="flex items-center gap-6">
-                    <button onclick="openCart()" class="relative p-2 text-metallic-blue hover:bg-gray-100 rounded-full transition-colors">
-                        <i class="fas fa-shopping-bag text-xl"></i>
-                        <span id="cart-count" class="absolute top-0 right-0 bg-metallic-red text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center transform translate-x-1 -translate-y-1 shadow-md">0</span>
-                    </button>
-                </div>
-            </div>
+    <!-- Panel de Entrada de Datos -->
+    <div class="card">
+        <h2>1. Costos (Producto y Envío)</h2>
+        <div class="form-group">
+            <label>Precio de Lista del Proveedor ($)</label>
+            <input type="number" id="precioLista" value="1000" step="0.01">
         </div>
-    </nav>
-
-    <div class="relative pt-20 pb-32 bg-gradient-to-br from-metallic-blue via-[#001530] to-black overflow-hidden">
-        <div class="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/brushed-alum.png')] mix-blend-overlay"></div>
-        <div class="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-metallic-blue rounded-full filter blur-[120px] opacity-50 mix-blend-screen"></div>
-        
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-24 pb-12">
-            <div class="text-center max-w-4xl mx-auto">
-                <span class="inline-block py-1 px-3 rounded-full bg-white/10 text-white text-xs font-bold tracking-widest mb-6 border border-white/20">MÁS DE 30 AÑOS DE EXPERIENCIA</span>
-                <h1 class="text-5xl md:text-7xl font-black text-white tracking-tight mb-6 drop-shadow-2xl">
-                    El confort de la <span class="text-transparent bg-clip-text bg-gradient-to-r from-metallic-red to-red-400">tecnología alemana</span> en tu hogar
-                </h1>
-                <p class="text-xl text-gray-300 mb-10 font-light max-w-2xl mx-auto">
-                    Ahorro de gas inigualable, temperatura constante y durabilidad extrema garantizada. Descubre por qué somos los líderes absolutos en calentadores.
-                </p>
-                <div class="flex justify-center gap-4">
-                    <a href="#catalogo" class="bg-gradient-to-r from-metallic-red to-red-600 hover:from-red-700 hover:to-red-800 text-white font-bold py-4 px-8 rounded-full text-lg transition-all shadow-lg shadow-red-500/30 transform hover:-translate-y-1">
-                        Comprar Ahora
-                    </a>
-                    <a href="#calidad" class="bg-white/10 hover:bg-white/20 border border-white/30 text-white font-bold py-4 px-8 rounded-full text-lg transition-all">
-                        Nuestra Calidad
-                    </a>
-                </div>
-            </div>
+        <div class="form-group">
+            <label>Descuento del Proveedor (%)</label>
+            <input type="number" id="descuento" value="30" step="0.1">
         </div>
-        
-        <div class="absolute bottom-0 w-full overflow-hidden leading-[0]">
-            <svg class="relative block w-full h-[60px] md:h-[100px]" viewBox="0 0 1440 100" fill="none" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0,50 C360,100 1080,0 1440,50 L1440,100 L0,100 Z" fill="#FFFFFF"></path>
-            </svg>
+        <div class="form-group">
+            <label style="color: var(--shipping);">Costo de Envío Absorbido (Con IVA) ($)</label>
+            <input type="number" id="costoEnvio" value="500" step="0.01">
+            <small style="color: var(--text-muted);">Lo que le pagas a la paquetería por enviar "Gratis" al cliente.</small>
+        </div>
+
+        <h2 style="margin-top: 30px;">2. Estrategia de Venta</h2>
+        <div class="toggle-group">
+            <button class="toggle-btn active" id="btn-modo-precio" onclick="setMode('precio')">Fijar Precio de Venta</button>
+            <button class="toggle-btn" id="btn-modo-margen" onclick="setMode('margen')">Fijar Margen Deseado</button>
+        </div>
+
+        <div class="form-group" id="group-precio">
+            <label>Precio al Público (Con IVA) ($)</label>
+            <input type="number" id="precioVenta" value="1500" step="0.01">
+        </div>
+
+        <div class="form-group" id="group-margen" style="display: none;">
+            <label>Margen de Ganancia Libre Deseado (%)</label>
+            <input type="number" id="margenDeseado" value="25" step="0.1">
+            <small style="color: var(--text-muted);">Calcularemos el precio necesario para lograr este margen exacto.</small>
         </div>
     </div>
 
-    <section id="calidad" class="bg-white py-24 relative">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center mb-16">
-                <h2 class="text-4xl font-black text-metallic-blue mb-4">Ingeniería que Trasciende</h2>
-                <div class="h-1.5 w-24 bg-metallic-red mx-auto rounded-full mb-6"></div>
-                <p class="text-lg text-gray-600 max-w-3xl mx-auto">
-                    Krüger no solo calienta agua, protege tu inversión. Nuestros equipos están construidos con estándares europeos para soportar las condiciones de agua más exigentes de México.
-                </p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
-                <div class="bg-gray-50 rounded-3xl p-8 border border-gray-100 hover:shadow-xl transition-shadow text-center">
-                    <div class="w-20 h-20 mx-auto bg-blue-100 text-metallic-blue rounded-full flex items-center justify-center text-3xl mb-6 shadow-inner">
-                        <i class="fas fa-medal"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-3">Años de Liderazgo</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">
-                        Con décadas de presencia sólida en el mercado, hemos perfeccionado el arte del calentamiento de agua.
-                    </p>
-                </div>
-
-                <div class="bg-gray-50 rounded-3xl p-8 border border-gray-100 hover:shadow-xl transition-shadow text-center relative overflow-hidden">
-                    <div class="absolute top-0 right-0 bg-metallic-red text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg">NO SE PICAN</div>
-                    <div class="w-20 h-20 mx-auto bg-gray-200 text-gray-600 rounded-full flex items-center justify-center text-3xl mb-6 shadow-inner border-2 border-gray-300">
-                        <i class="fas fa-shield-alt"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-3">Materiales Anticorrosión</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">
-                        Utilizamos aleaciones premium que resisten aguas duras. <strong>Nuestros tanques y tuberías no se pican.</strong>
-                    </p>
-                </div>
-
-                <div class="bg-gray-50 rounded-3xl p-8 border border-gray-100 hover:shadow-xl transition-shadow text-center">
-                    <div class="w-20 h-20 mx-auto bg-red-100 text-metallic-red rounded-full flex items-center justify-center text-3xl mb-6 shadow-inner">
-                        <i class="fas fa-lock"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-3">Máxima Seguridad</h3>
-                    <p class="text-gray-600 text-sm leading-relaxed">
-                        Equipados con múltiples sensores de flama, termostatos y válvulas de alivio de presión exactas.
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <div class="absolute bottom-0 w-full overflow-hidden leading-[0]">
-            <svg class="relative block w-full h-[60px] md:h-[100px]" viewBox="0 0 1440 100" fill="none" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M0,50 C360,0 1080,100 1440,50 L1440,100 L0,100 Z" fill="#F8F9FA"></path>
-            </svg>
-        </div>
-    </section>
-
-    <section id="tecnologia" class="bg-[#F8F9FA] py-24 relative">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                
-                <div>
-                    <span class="text-metallic-red font-black tracking-widest uppercase text-sm mb-2 block">La Nueva Era</span>
-                    <h2 class="text-4xl md:text-5xl font-black text-metallic-blue mb-6 leading-tight">Conoce la espectacular <br>Línea <span class="bg-clip-text text-transparent bg-gradient-to-r from-gray-400 to-gray-600">Silver</span></h2>
-                    
-                    <p class="text-lg text-gray-600 mb-8">
-                        La tecnología Silver de Krüger representa el pináculo de la eficiencia energética y el confort digital. Diseñada para hogares modernos que exigen lo mejor.
-                    </p>
-
-                    <div class="space-y-6">
-                        <div class="flex gap-4">
-                            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-white shadow flex items-center justify-center text-metallic-blue text-xl border border-gray-100">
-                                <i class="fas fa-microchip"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-xl font-bold text-gray-900">Microprocesador Inteligente</h4>
-                                <p class="text-gray-600 text-sm mt-1">Garantiza una <strong>temperatura constante e ininterrumpida</strong> sin cambios bruscos.</p>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-4">
-                            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-white shadow flex items-center justify-center text-metallic-blue text-xl border border-gray-100">
-                                <i class="fas fa-tv"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-xl font-bold text-gray-900">Display Digital a Color</h4>
-                                <p class="text-gray-600 text-sm mt-1">Control absoluto en tus manos. Monitorea y ajusta la temperatura grado a grado.</p>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-4">
-                            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-white shadow flex items-center justify-center text-metallic-red text-xl border border-gray-100">
-                                <i class="fas fa-fire-alt"></i>
-                            </div>
-                            <div>
-                                <h4 class="text-xl font-bold text-gray-900">Hasta 80% Ahorro de Gas</h4>
-                                <p class="text-gray-600 text-sm mt-1">El sistema modulante y la ausencia de piloto encendido te permiten ahorrar drásticamente.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="relative">
-                    <div class="absolute inset-0 bg-gradient-to-tr from-metallic-blue to-transparent rounded-3xl transform rotate-3 scale-105 opacity-10"></div>
-                    <div class="bg-white p-8 md:p-10 rounded-3xl shadow-2xl relative z-10 border border-gray-100">
-                        <div class="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center text-3xl mb-6">
-                            <i class="fas fa-sun"></i>
-                        </div>
-                        <h3 class="text-3xl font-black text-gray-900 mb-4">Interconectable con<br>Calentadores Solares</h3>
-                        <p class="text-gray-600 mb-6 leading-relaxed">
-                            Nuestros equipos de última generación están preparados para el futuro. Son <strong>híbridos</strong>, pueden trabajar en perfecta sincronía con tu equipo solar existente.
-                        </p>
-                        <div class="bg-gray-50 p-5 rounded-2xl border border-gray-100">
-                            <h4 class="font-bold text-metallic-blue mb-2 text-sm uppercase tracking-wide">¿Cómo funciona?</h4>
-                            <p class="text-sm text-gray-600">
-                                Si el sol ya calentó el agua, el Krüger se mantiene apagado. Si en días nublados el agua viene tibia, el calentador Krüger <strong>solo enciende la flama necesaria</strong>.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    </section>
-
-    <main id="catalogo" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 relative z-20">
-        <div class="text-center mb-8">
-            <h2 class="text-4xl md:text-5xl font-black text-metallic-blue mb-4">Elige tu Krüger</h2>
-            <div class="h-1.5 w-24 bg-gradient-to-r from-metallic-red to-red-400 mx-auto rounded-full"></div>
-            <p class="mt-4 text-gray-500 font-bold uppercase tracking-widest"><i class="fas fa-truck text-green-500 mr-1"></i> Envío Gratis a Todo México</p>
-        </div>
-
-        <div class="flex overflow-x-auto gap-2 md:gap-4 mb-8 pb-4 no-scrollbar items-center md:justify-center">
-            <button onclick="filterCat('Todos')" class="cat-btn active bg-metallic-blue text-white px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-sm whitespace-nowrap shadow-md transition-all">Todos</button>
-            <button onclick="filterCat('Línea Silver')" class="cat-btn bg-white text-gray-600 hover:text-metallic-blue px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-sm whitespace-nowrap border border-gray-200 hover:border-metallic-blue transition-all">Línea Silver</button>
-            <button onclick="filterCat('Línea Platino')" class="cat-btn bg-white text-gray-600 hover:text-metallic-blue px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-sm whitespace-nowrap border border-gray-200 hover:border-metallic-blue transition-all">Línea Platino</button>
-            <button onclick="filterCat('Instantáneos')" class="cat-btn bg-white text-gray-600 hover:text-metallic-blue px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-sm whitespace-nowrap border border-gray-200 hover:border-metallic-blue transition-all">Instantáneos</button>
-            <button onclick="filterCat('Solares')" class="cat-btn bg-white text-gray-600 hover:text-metallic-blue px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-sm whitespace-nowrap border border-gray-200 hover:border-metallic-blue transition-all">Solares</button>
-            <button onclick="filterCat('Eléctricos')" class="cat-btn bg-white text-gray-600 hover:text-metallic-blue px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-sm whitespace-nowrap border border-gray-200 hover:border-metallic-blue transition-all">Eléctricos</button>
-            <button onclick="filterCat('Parrillas')" class="cat-btn bg-white text-gray-600 hover:text-metallic-blue px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-sm whitespace-nowrap border border-gray-200 hover:border-metallic-blue transition-all">Parrillas</button>
-            <button onclick="filterCat('Accesorios')" class="cat-btn bg-white text-gray-600 hover:text-metallic-blue px-4 md:px-6 py-2 rounded-full font-bold text-xs md:text-sm whitespace-nowrap border border-gray-200 hover:border-metallic-blue transition-all">Accesorios</button>
-        </div>
+    <!-- Panel de Resultados -->
+    <div class="card">
+        <h2>Desglose de la Operación</h2>
         
-        <div id="products-grid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
-            <!-- Productos -->
-        </div>
-    </main>
+        <div class="row"><span>Costo del Producto Base</span> <span id="out-sub-compra">$0.00</span></div>
+        <div class="row"><span>IVA de Compra (a tu favor)</span> <span id="out-iva-compra">$0.00</span></div>
+        <div class="row" style="color: var(--shipping);"><span>Costo de Envío (Sin IVA)</span> <span id="out-sub-envio">$0.00</span></div>
+        <div class="row" style="color: var(--shipping);"><span>IVA de Envío (a tu favor)</span> <span id="out-iva-envio">$0.00</span></div>
+        <div class="row total"><span>Costo Total de la Operación</span> <span id="out-costo-total">$0.00</span></div>
 
-    <!-- MODAL DE DETALLE -->
-    <div id="product-detail-modal" class="fixed inset-0 bg-metallic-blue/90 z-50 hidden flex items-center justify-center p-4 md:p-10 backdrop-blur-md overflow-y-auto">
-        <div class="bg-white rounded-3xl w-full max-w-5xl shadow-2xl relative flex flex-col md:flex-row overflow-hidden my-auto">
-            <button onclick="closeProductDetail()" class="absolute top-4 right-4 text-gray-400 hover:text-metallic-red bg-white rounded-full p-2 z-10 shadow-sm"><i class="fas fa-times text-xl"></i></button>
+        <h3 style="font-size: 14px; margin-top: 20px; color: var(--mp-blue);">Cobro del Cliente</h3>
+        <div class="row"><span>Precio de Venta</span> <span id="out-precio-venta">$0.00</span></div>
+        <div class="row"><span>Subtotal (Base para SAT)</span> <span id="out-sub-venta">$0.00</span></div>
+        <div class="row"><span>IVA Cobrado</span> <span id="out-iva-cobrado">$0.00</span></div>
+
+        <h3 style="font-size: 14px; margin-top: 20px; color: var(--mp-blue);">Retenciones Mercado Pago (3.49% + $4)</h3>
+        <div class="row"><span>Comisión MP</span> <span id="out-comision">$0.00</span></div>
+        <div class="row"><span>IVA de Comisión</span> <span id="out-iva-comision">$0.00</span></div>
+        <div class="row total"><span>Recibes en Cuenta MP</span> <span id="out-recibido">$0.00</span></div>
+
+        <h3 style="font-size: 14px; margin-top: 20px; color: #c5221f;">Impuestos (SAT y Estado)</h3>
+        <div class="row"><span>Retención ISR (1.25% del subtotal)</span> <span id="out-isr">$0.00</span></div>
+        <div class="row"><span>Impuesto Cedular (5% de utilidad)</span> <span id="out-cedular">$0.00</span></div>
+        <div class="row"><span>IVA a pagar al SAT (Neto)</span> <span id="out-iva-sat">$0.00</span></div>
+        <div class="row total" style="color: #c5221f;"><span>Total Impuestos a Pagar</span> <span id="out-impuestos">$0.00</span></div>
+
+        <div id="alerta-resultado" class="alert alert-success">
+            Utilidad Neta: <span id="out-utilidad">$0.00</span><br>
+            <span style="font-size: 14px; font-weight: normal;">Margen de Ganancia: <span id="out-margen">0.00%</span></span>
+        </div>
+    </div>
+</div>
+
+<script>
+    let mode = 'precio';
+
+    function setMode(newMode) {
+        mode = newMode;
+        document.getElementById('btn-modo-precio').classList.toggle('active', mode === 'precio');
+        document.getElementById('btn-modo-margen').classList.toggle('active', mode === 'margen');
+        
+        if(mode === 'precio') {
+            document.getElementById('group-precio').style.display = 'block';
+            document.getElementById('group-margen').style.display = 'none';
+        } else {
+            document.getElementById('group-precio').style.display = 'none';
+            document.getElementById('group-margen').style.display = 'block';
+        }
+        calculate();
+    }
+
+    function format(num) {
+        return "$" + num.toLocaleString('es-MX', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    function computeMath(precioLista, descuentoPct, costoEnvioTotal, precioVenta) {
+        let descuento = precioLista * (descuentoPct / 100);
+        let subtotalCompra = precioLista - descuento;
+        let ivaCompra = subtotalCompra * 0.16;
+        
+        let subtotalEnvio = costoEnvioTotal / 1.16;
+        let ivaEnvio = subtotalEnvio * 0.16;
+
+        let costoTotalOperacion = subtotalCompra + ivaCompra + costoEnvioTotal;
+
+        let subtotalVenta = precioVenta / 1.16;
+        let ivaCobrado = subtotalVenta * 0.16;
+
+        let comisionBase = (precioVenta * 0.0349) + 4;
+        let ivaComision = comisionBase * 0.16;
+        let totalRetenidoMP = comisionBase + ivaComision;
+        let recibidoMP = precioVenta - totalRetenidoMP;
+
+        let retencionISR = subtotalVenta * 0.0125;
+        
+        let baseCedular = subtotalVenta - subtotalCompra - comisionBase - subtotalEnvio;
+        if(baseCedular < 0) baseCedular = 0;
+        let impuestoCedular = baseCedular * 0.05;
+
+        let ivaAPagar = ivaCobrado - ivaCompra - ivaComision - ivaEnvio;
+        if(ivaAPagar < 0) ivaAPagar = 0;
+
+        let totalImpuestos = retencionISR + impuestoCedular + ivaAPagar;
+
+        let utilidadFinal = recibidoMP - costoTotalOperacion - totalImpuestos;
+        let margen = precioVenta > 0 ? (utilidadFinal / precioVenta) * 100 : 0;
+
+        return {
+            subtotalCompra, ivaCompra, subtotalEnvio, ivaEnvio, costoTotalOperacion,
+            subtotalVenta, ivaCobrado, comisionBase, ivaComision, totalRetenidoMP, recibidoMP,
+            retencionISR, baseCedular, impuestoCedular, ivaAPagar, totalImpuestos,
+            utilidadFinal, margen, precioVenta
+        };
+    }
+
+    function findPriceForMargin(precioLista, descuentoPct, costoEnvioTotal, targetMarginPct) {
+        let low = 0;
+        let high = 500000;
+        let bestPrice = 0;
+
+        for(let i=0; i<100; i++) {
+            let mid = (low + high) / 2;
+            let res = computeMath(precioLista, descuentoPct, costoEnvioTotal, mid);
             
-            <div class="md:w-1/2 bg-gray-50 p-8 flex flex-col border-r border-gray-100">
-                <div class="self-start bg-green-100 text-green-700 text-xs font-black px-3 py-1.5 rounded-full uppercase tracking-wider mb-4 flex items-center gap-2">
-                    <i class="fas fa-truck-fast"></i> Envío Gratis a domicilio
-                </div>
-                <div class="flex-1 min-h-[300px] flex items-center justify-center mb-6 bg-white rounded-2xl p-6 shadow-inner">
-                    <img id="detail-main-img" src="" class="object-contain w-full h-full max-h-[400px] drop-shadow-xl transition-all">
-                </div>
-            </div>
+            if (res.margen < targetMarginPct) {
+                low = mid; 
+            } else {
+                high = mid;
+            }
+            bestPrice = mid;
+        }
+        return bestPrice;
+    }
 
-            <div class="md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
-                <span id="detail-category-badge" class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-2 flex-wrap">Tecnología Alemana</span>
-                <h2 id="detail-name" class="text-3xl md:text-4xl font-black text-metallic-blue mb-4 leading-tight">Modelo</h2>
-                
-                <div id="detail-price" class="text-4xl font-black text-gray-900 mb-6 flex items-baseline gap-2 flex-wrap">
-                    $0 MXN
-                </div>
-                
-                <div class="flex items-center gap-4 mb-6 text-sm">
-                    <div class="flex items-center gap-2 text-green-600 font-bold bg-green-50 px-3 py-2 rounded-lg border border-green-100"><i class="fas fa-box-open"></i> En stock</div>
-                    <div class="flex items-center gap-2 text-gray-600 font-medium"><i class="fas fa-bolt text-yellow-500"></i> Entrega: 2 a 5 días</div>
-                </div>
+    function calculate() {
+        let precioLista = parseFloat(document.getElementById('precioLista').value) || 0;
+        let descuentoPct = parseFloat(document.getElementById('descuento').value) || 0;
+        let costoEnvioTotal = parseFloat(document.getElementById('costoEnvio').value) || 0;
+        let results;
 
-                <div class="mb-8">
-                    <h4 class="font-bold text-gray-900 mb-2 border-b pb-2">Acerca del equipo</h4>
-                    <p id="detail-desc" class="text-gray-600 text-sm leading-relaxed"></p>
-                </div>
-                
-                <!-- Contenedor inyectado para el Gas Type dentro del modal -->
-                <div id="detail-gas-container"></div>
-                <div id="detail-install-container" class="mb-6"></div>
+        if (mode === 'precio') {
+            let precioVenta = parseFloat(document.getElementById('precioVenta').value) || 0;
+            results = computeMath(precioLista, descuentoPct, costoEnvioTotal, precioVenta);
+        } else {
+            let targetMarginPct = parseFloat(document.getElementById('margenDeseado').value) || 0;
+            let targetPrice = findPriceForMargin(precioLista, descuentoPct, costoEnvioTotal, targetMarginPct);
+            results = computeMath(precioLista, descuentoPct, costoEnvioTotal, targetPrice);
+            document.getElementById('out-precio-venta').innerText = format(results.precioVenta) + " (Sugerido)";
+        }
 
-                <button onclick="addDetailToCart()" class="w-full bg-metallic-blue hover:bg-blue-900 text-white font-bold py-4 rounded-2xl text-lg transition-all shadow-lg shadow-blue-900/30 transform hover:-translate-y-1 flex items-center justify-center gap-2 mt-4">
-                    <i class="fas fa-cart-plus"></i> Agregar al Pedido
-                </button>
-            </div>
-        </div>
-    </div>
+        if (mode === 'precio') document.getElementById('out-precio-venta').innerText = format(results.precioVenta);
+        
+        document.getElementById('out-sub-compra').innerText = format(results.subtotalCompra);
+        document.getElementById('out-iva-compra').innerText = format(results.ivaCompra);
+        document.getElementById('out-sub-envio').innerText = format(results.subtotalEnvio);
+        document.getElementById('out-iva-envio').innerText = format(results.ivaEnvio);
+        document.getElementById('out-costo-total').innerText = format(results.costoTotalOperacion);
+        
+        document.getElementById('out-sub-venta').innerText = format(results.subtotalVenta);
+        document.getElementById('out-iva-cobrado').innerText = format(results.ivaCobrado);
+        
+        document.getElementById('out-comision').innerText = format(results.comisionBase);
+        document.getElementById('out-iva-comision').innerText = format(results.ivaComision);
+        document.getElementById('out-recibido').innerText = format(results.recibidoMP);
+        
+        document.getElementById('out-isr').innerText = format(results.retencionISR);
+        document.getElementById('out-cedular').innerText = format(results.impuestoCedular);
+        document.getElementById('out-iva-sat').innerText = format(results.ivaAPagar);
+        document.getElementById('out-impuestos').innerText = format(results.totalImpuestos);
+        
+        document.getElementById('out-utilidad').innerText = format(results.utilidadFinal);
+        document.getElementById('out-margen').innerText = results.margen.toFixed(2) + "%";
 
-    <!-- MODAL CARRITO -->
-    <div id="cart-modal" class="fixed inset-y-0 right-0 w-full max-w-md bg-[#F8F9FA] shadow-2xl z-50 transform translate-x-full transition-transform duration-500 ease-out flex flex-col border-l border-gray-200">
-        <div class="p-6 bg-white border-b border-gray-100 flex justify-between items-center">
-            <h2 class="text-2xl font-black text-metallic-blue">Tu Pedido</h2>
-            <button onclick="closeCart()" class="text-gray-400 hover:text-metallic-red transition-colors bg-gray-50 p-2 rounded-full">
-                <i class="fas fa-times text-xl"></i>
-            </button>
-        </div>
-        <div id="cart-items" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
-        <div class="p-8 bg-white border-t border-gray-100 shadow-[0_-10px_40px_rgb(0,0,0,0.05)]">
-            <div class="flex justify-between text-xl font-bold mb-6 text-metallic-blue">
-                <span>Total estimado:</span>
-                <span id="cart-total" class="text-2xl">$0</span>
-            </div>
-            <button onclick="openCheckout()" class="w-full bg-gradient-to-r from-metallic-red to-red-600 hover:from-red-700 hover:to-red-800 text-white font-bold py-4 rounded-2xl text-lg transition-all shadow-lg shadow-red-500/30 transform hover:-translate-y-1">
-                Finalizar Compra
-            </button>
-        </div>
-    </div>
+        let alertBox = document.getElementById('alerta-resultado');
+        if(results.utilidadFinal > 0) {
+            alertBox.className = "alert alert-success";
+        } else {
+            alertBox.className = "alert alert-danger";
+        }
+    }
 
-    <!-- MODAL CHECKOUT -->
-    <div id="checkout-modal" class="fixed inset-0 bg-metallic-blue/90 z-50 hidden flex items-center justify-center p-4 backdrop-blur-md">
-        <div class="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-y-auto flex flex-col md:flex-row shadow-2xl">
-            
-            <div class="bg-gray-50 p-6 md:p-10 md:w-1/3 border-b md:border-b-0 md:border-r border-gray-200 flex flex-col justify-between">
-                <div>
-                    <h3 class="text-xl font-black text-metallic-blue mb-4">Resumen de tu Pedido</h3>
-                    
-                    <div id="checkout-items-list" class="mb-4 space-y-2 max-h-48 overflow-y-auto pr-1 no-scrollbar"></div>
-                    
-                    <div class="border-t border-gray-200 pt-4 mb-4">
-                        <div class="flex justify-between text-sm text-gray-600 mb-2">
-                            <span>Subtotal (Sin IVA)</span>
-                            <span id="checkout-subtotal" class="font-bold text-gray-800">$0.00</span>
-                        </div>
-                        <div class="flex justify-between text-sm text-gray-600 mb-4">
-                            <span>IVA (16%)</span>
-                            <span id="checkout-iva" class="font-bold text-gray-800">$0.00</span>
-                        </div>
-                        <div class="flex justify-between items-end border-t border-gray-200 pt-3">
-                            <span class="text-base font-bold text-gray-800">Total a pagar</span>
-                            <div class="text-2xl font-black text-gray-900" id="final-total">$0 MXN</div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-green-100 text-green-800 text-xs font-bold p-3 rounded-lg flex items-center gap-2">
-                        <i class="fas fa-check-circle text-lg"></i> Envío nacional Gratis
-                    </div>
-                </div>
-                
-                <button type="button" onclick="closeCheckout()" class="text-sm text-gray-500 font-bold hover:text-metallic-red text-left mt-6 flex items-center">
-                    <i class="fas fa-arrow-left mr-2"></i> Volver al carrito
-                </button>
-            </div>
+    document.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', calculate);
+    });
 
-            <div class="p-8 md:p-10 md:w-2/3 overflow-y-auto">
-                <h3 class="text-2xl font-black text-gray-800 mb-6">Completa tus datos</h3>
-                
-                <form id="checkout-form" class="space-y-5">
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Nombre Completo</label>
-                            <input type="text" id="c-name" required class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Teléfono Móvil</label>
-                            <input type="tel" id="c-phone" required class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Correo Electrónico (Para enviar tu recibo)</label>
-                        <input type="email" id="c-email" required placeholder="ejemplo@correo.com" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none">
-                    </div>
-
-                    <div class="relative">
-                        <label class="block text-sm font-bold text-gray-700 mb-1">Dirección de Envío Completa</label>
-                        <input type="text" id="c-address" required placeholder="Empieza a escribir tu calle y selecciona una opción..." autocomplete="off" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none focus:border-metallic-blue">
-                        <ul id="address-suggestions" class="absolute z-50 w-full bg-white border border-gray-200 rounded-xl mt-1 shadow-2xl hidden max-h-48 overflow-y-auto"></ul>
-                    </div>
-
-                    <div id="installation-fields" class="hidden bg-blue-50/50 p-6 rounded-2xl border border-blue-100 mt-4">
-                        <h4 class="text-sm font-bold text-metallic-blue mb-4"><i class="fas fa-tools mr-1"></i> Detalles de Instalación (León, Gto)</h4>
-                        
-                        <label class="flex items-center gap-2 mb-4 cursor-pointer">
-                            <input type="checkbox" id="c-same-address" checked class="w-4 h-4 text-metallic-blue">
-                            <span class="text-sm text-gray-700 font-medium">Instalar en la misma dirección de envío</span>
-                        </label>
-                        
-                        <div id="c-install-address-container" class="relative hidden mb-4">
-                            <input type="text" id="c-install-address" placeholder="Escribe la dirección de instalación diferente" autocomplete="off" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none focus:border-metallic-blue">
-                            <ul id="install-address-suggestions" class="absolute z-50 w-full bg-white border border-gray-200 rounded-xl mt-1 shadow-2xl hidden max-h-48 overflow-y-auto"></ul>
-                        </div>
-                        
-                        <div>
-                            <label class="block text-sm font-bold text-gray-700 mb-1">Fecha y Hora Preferida para Visita</label>
-                            <input type="datetime-local" id="c-schedule" class="w-full border border-gray-200 rounded-xl p-3 bg-white outline-none cursor-pointer">
-                            <p class="text-xs text-metallic-red mt-2 font-bold"><i class="fas fa-info-circle mr-1"></i> Confirmaremos el horario exacto por teléfono.</p>
-                        </div>
-                    </div>
-
-                    <button type="submit" id="btn-process-order" class="w-full bg-[#009EE3] hover:bg-blue-600 text-white font-black py-4 rounded-2xl text-lg shadow-lg flex justify-center items-center gap-2 mt-4 transition-colors">
-                        <i class="fas fa-lock"></i> Proceder al Pago Seguro
-                    </button>
-
-                    <div id="wallet_container" class="mt-4"></div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <footer class="bg-metallic-blue text-gray-300 py-12 border-t border-blue-900">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center md:text-left grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-                <img src="./logo-kruger-blanco.png" alt="Krüger" class="h-8 md:h-10 w-auto object-contain mb-4 mx-auto md:mx-0" onerror="this.onerror=null; this.src='https://placehold.co/200x50/transparent/ffffff?text=Krüger';">
-                <p class="text-sm text-blue-200 mt-4">Distribuidor Autorizado. Llevando la mejor tecnología alemana y el confort absoluto a cada hogar en México.</p>
-            </div>
-            <div>
-                <h4 class="text-white font-bold mb-4 uppercase text-sm tracking-wider">Enlaces Rápidos</h4>
-                <ul class="space-y-2 text-sm">
-                    <li><a href="#calidad" class="hover:text-white">Nuestra Calidad</a></li>
-                    <li><a href="#tecnologia" class="hover:text-white">Tecnología Silver</a></li>
-                    <li><a href="#catalogo" class="hover:text-white">Catálogo Premium</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4 class="text-white font-bold mb-4 uppercase text-sm tracking-wider">Soporte</h4>
-                <p class="text-sm mb-2"><i class="fas fa-phone mr-2"></i> 477 333 80 84</p>
-                <p class="text-sm"><i class="fas fa-envelope mr-2"></i> krugerdistribudorautorizado@gmail.com</p>
-                <p class="text-sm"><i class="fas fa-envelope mr-2"></i> Todos los derechos reservados 2026</p>
-            </div>
-        </div>
-    </footer>
+    calculate();
+</script>
 
 </body>
 </html>
